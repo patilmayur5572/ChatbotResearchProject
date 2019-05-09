@@ -1,7 +1,7 @@
 
 process.env.NTBA_FIX_319 = 1;
 
-var token = 'XXXXXXXX';
+var token = '869456871:AAEA1_bVo3hzHmIWB51E9WeV2j8WHI4pjDM';
 
 var Bot = require('node-telegram-bot-api'),
     bot = new Bot(token, { polling: true });
@@ -20,11 +20,13 @@ function Executor(){
         "2": "Please enter you First Name + Last Name.",
         "3": "Help us verify your account. Please enter your Date of Birth(DD/MM/YYYY) OR Driving License Number",
         "4": "Please confirm that Apple iPhone 6S 32GB Black is the device for which you are submitting the request.",
-        "5": "Is your mobile or tablet in possession?"
+        "5": "Please confirm the problem with your phone.",
+        "6": "Please upload your invoice***",
+        "7": "We have noted your request. According to our records you are entitled for full replacement. Do you want to continue with this?"
     };
     
     var validationMessage = {
-        "1": "Please enter valid MDN.", 
+        "1": "Please enter valid Mobile No.", 
         "2": "Please enter you First Name + Last Name.",
         "3": "Help us verify your account. Please enter your Date of Birth OR Driving License Number",
         "4": "Please confirm that Apple iPhone 6S 32GB Black is the device for which you are submitting the request.",
@@ -41,6 +43,8 @@ function Executor(){
     self.stateExecutor["2"] = step2;
     self.stateExecutor["3"] = step3;
     self.stateExecutor["4"] = step4;
+    self.stateExecutor["5"] = step5;
+    self.stateExecutor["6"] = step6;
     
     self.process = function(message){
         ///if its first invocation - then do not execute step. Show the question
@@ -72,9 +76,21 @@ function sendMsg(message,question){
         one_time_keyboard: true
       })
     };
+
+    var peril = {
+        reply_to_message_id: message.message_id,
+        reply_markup: JSON.stringify({
+          keyboard: [
+            ['Malfunction'],['Lost'],['Stolen']
+          ],
+          one_time_keyboard: true
+        })
+      };
     
-    if(state[chatid].state === "4" || state[chatid].state === "5")      
+    if(state[chatid].state === "4" || state[chatid].state === "7")      
         bot.sendMessage(chatid,question,opts).then(function(sended){})
+    else if(state[chatid].state === "5")
+        bot.sendMessage(chatid,question,peril).then(function(sended){})
     else
         bot.sendMessage(chatid,question).then(function(sended){})	    
 }
@@ -121,6 +137,21 @@ function step4(executor, message) {
     //Jump to target state - by changing state value of executor
     //Show Target state Question
     executor.state = "5";
+    executor.showQuestion(message);
+}
+
+function step5(executor, message) {
+    //Process Message - validate, store, execute
+    //Jump to target state - by changing state value of executor
+    //Show Target state Question
+    executor.state = "6";
+    executor.showQuestion(message);
+}
+function step6(executor, message) {
+    //Process Message - validate, store, execute
+    //Jump to target state - by changing state value of executor
+    //Show Target state Question
+    executor.state = "7";
     executor.showQuestion(message);
 }
 
