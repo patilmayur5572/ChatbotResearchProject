@@ -1,7 +1,7 @@
 
 process.env.NTBA_FIX_319 = 1;
 
-var token = '869456871:AAEA1_bVo3hzHmIWB51E9WeV2j8WHI4pjDM';
+var token = 'XXXX';
 
 var Bot = require('node-telegram-bot-api'),
     bot = new Bot(token, { polling: true });
