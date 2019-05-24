@@ -1,12 +1,25 @@
 
 process.env.NTBA_FIX_319 = 1;
+var sqlite3 = require('sqlite3').verbose();
+var token = 'XXXXXX';
 
-var token = 'XXXX';
+var db = new sqlite3.Database(':memory:');
+db.serialize(function() {
+  db.run("CREATE TABLE client (firstName TEXT, lastName TEXT, mobileNumber TEXT)");
+  db.run("INSERT INTO client VALUES ('Sunit', 'Singh', '1234567890')");
+  db.run("INSERT INTO client VALUES ('Mayur', 'Patil', '1234567891')");
+  db.run("INSERT INTO client VALUES ('Karishma', 'Singh', '1234567892')");
+  db.run("INSERT INTO client VALUES ('Test', 'Client', '0000000000')");
+
+});
 
 var Bot = require('node-telegram-bot-api'),
     bot = new Bot(token, { polling: true });
 
 var state = {};
+var mobileNumber = "";
+var firstName = "";
+var lastName = "";
 
 bot.on('message', function(message)
 {	
@@ -16,7 +29,7 @@ bot.on('message', function(message)
 
 function Executor(){
     var stateMessage = {
-        "1": "Please enter your Mobile No.", 
+        "1": "Welcome to online insurance claim. Please enter your Mobile No.", 
         "2": "Please enter you First Name + Last Name.",
         "3": "Help us verify your account. Please enter your Date of Birth(DD/MM/YYYY) OR Driving License Number",
         "4": "Please confirm that Apple iPhone 6S 32GB Black is the device for which you are submitting the request.",
@@ -27,7 +40,7 @@ function Executor(){
     
     var validationMessage = {
         "1": "Please enter valid Mobile No.", 
-        "2": "Please enter you First Name + Last Name.",
+        "2": "Name does not match mobile number, please enter correct name.",
         "3": "Help us verify your account. Please enter your Date of Birth OR Driving License Number",
         "4": "Please confirm that Apple iPhone 6S 32GB Black is the device for which you are submitting the request.",
         "5": "Is your mobile or tablet in possession?"
@@ -47,15 +60,15 @@ function Executor(){
     self.stateExecutor["6"] = step6;
     
     self.process = function(message){
-        ///if its first invocation - then do not execute step. Show the question
-        ///if its greater than first invocation, then execute step, and then show the question
+        // if its first invocation - then do not execute step. Show the question
+        // if its greater than first invocation, then execute step, and then show the question
         if (self.stateExecutor[self.state]) {
             self.stateExecutor[self.state](self, message);
         }
     }
     
     self.showQuestion = function(message){        
-        sendMsg(message, stateMessage[self.state]);
+        sendMsg(message , stateMessage[self.state]);
     }
     
     self.showValidationError = function(message){        
@@ -96,11 +109,12 @@ function sendMsg(message,question){
 }
 
 function step0(executor, message) {
-    //Process Message - validate, store, execute
-    //Jump to target state - by changing state value of executor
-    //Show Target state Question
+    // Process Message - validate, store, execute
+    // Jump to target state - by changing state value of executor
+    // Show Target state Question
     executor.state = "1";
     executor.showQuestion(message);
+    console.log(message);
 }
 
 function step1(executor, message) {  
@@ -112,47 +126,71 @@ function step1(executor, message) {
     else
     {
         executor.state = "2";
+        mobileNumber = message.text;
         executor.showQuestion(message);
     }
 }
 
 function step2(executor, message) {
-    //Process Message - validate, store, execute
-    //Jump to target state - by changing state value of executor
-    //Show Target state Question
+    // Process Message - validate, store, execute
+    // Jump to target state - by changing state value of executor
+    // Show Target state Question
     executor.state = "3";
+    console.log(message);
+    var name = message.text.split(" ");
     executor.showQuestion(message);
+
+    var query = "SELECT firstName, lastName FROM client where mobileNumber = ?";
+    
+    db.get(query,[mobileNumber] , function(err, row) {
+
+        if(err) {
+            console.log('ERROR', err);
+        } else if (!row) {
+            console.log('ERROR', err);
+        } else {
+            
+            if(name[0] == row.firstName && name[1] == row.lastName) {
+                console.log("User name verified");
+                executor.showQuestion(message);
+            }
+            else {
+                executor.showValidationError(message); 
+            }
+        }
+    });
 }
 
 function step3(executor, message) {
-    //Process Message - validate, store, execute
-    //Jump to target state - by changing state value of executor
-    //Show Target state Question
+    // Process Message - validate, store, execute
+    // Jump to target state - by changing state value of executor
+    // Show Target state Question
     executor.state = "4";
     executor.showQuestion(message);
 }
 
 function step4(executor, message) {
-    //Process Message - validate, store, execute
-    //Jump to target state - by changing state value of executor
-    //Show Target state Question
+    // Process Message - validate, store, execute
+    // Jump to target state - by changing state value of executor
+    // Show Target state Question
     executor.state = "5";
     executor.showQuestion(message);
 }
 
 function step5(executor, message) {
-    //Process Message - validate, store, execute
-    //Jump to target state - by changing state value of executor
-    //Show Target state Question
+    // Process Message - validate, store, execute
+    // Jump to target state - by changing state value of executor
+    // Show Target state Question
     executor.state = "6";
     executor.showQuestion(message);
 }
 function step6(executor, message) {
-    //Process Message - validate, store, execute
-    //Jump to target state - by changing state value of executor
-    //Show Target state Question
+    // Process Message - validate, store, execute
+    // Jump to target state - by changing state value of executor
+    // Show Target state Question
     executor.state = "7";
     executor.showQuestion(message);
 }
 
+console.log("Chatbot server started");
 
