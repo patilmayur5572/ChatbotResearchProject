@@ -1,15 +1,15 @@
 
 process.env.NTBA_FIX_319 = 1;
 var sqlite3 = require('sqlite3').verbose();
-var token = '869456871:AAEA1_bVo3hzHmIWB51E9WeV2j8WHI4pjDM';
+var token = 'XXXXXXXXX';
 
 var db = new sqlite3.Database(':memory:');
 db.serialize(function() {
-  db.run("CREATE TABLE client (firstName TEXT, lastName TEXT, mobileNumber TEXT)");
-  db.run("INSERT INTO client VALUES ('Sunit', 'Singh', '1234567890')");
-  db.run("INSERT INTO client VALUES ('Mayur', 'Patil', '1234567891')");
-  db.run("INSERT INTO client VALUES ('Karishma', 'Singh', '1234567892')");
-  db.run("INSERT INTO client VALUES ('Test', 'Client', '0000000000')");
+  db.run("CREATE TABLE client (firstName TEXT, lastName TEXT, mobileNumber TEXT, dateOfBirth DATE)");
+  db.run("INSERT INTO client VALUES ('Sunit', 'Singh', '1234567890', '1991-01-22')");
+  db.run("INSERT INTO client VALUES ('Mayur', 'Patil', '1234567891', '1991-01-01')");
+  db.run("INSERT INTO client VALUES ('Karishma', 'Singh', '1234567892', '1991-01-01')");
+  db.run("INSERT INTO client VALUES ('Test', 'Client', '0000000000', '1991-01-01')");
 
 });
 
@@ -30,7 +30,7 @@ bot.on('message', function(message)
 var stateMessage = {
     "RES1": "Welcome to online insurance claim. Please enter your Mobile No.", 
     "RES2": "Please enter you First Name + Last Name.",
-    "RES3": "Help us verify your account. Please enter your Date of Birth(DD/MM/YYYY) OR Driving License Number",
+    "RES3": "Help us verify your account. Please enter your Date of Birth(YYYY-MM-DD).",
     "RES4": "Please confirm that Apple iPhone 6S 32GB Black is the device for which you are submitting the request.",
     "RES5": "Please confirm the problem with your phone.",
     "RES6": "Please upload your invoice***",
@@ -40,7 +40,7 @@ var stateMessage = {
 var validationMessage = {
     "ERR1": "Please enter valid Mobile No.", 
     "ERR2": "Name does not match mobile number, please enter correct name.",
-    "ERR3": "Help us verify your account. Please enter your Date of Birth OR Driving License Number",
+    "ERR3": "Date of birth does not match account, please enter correct date of birth",
     "ERR4": "Please confirm that Apple iPhone 6S 32GB Black is the device for which you are submitting the request.",
     "ERR5": "Is your mobile or tablet in possession?"
 };
@@ -118,12 +118,10 @@ function step0(executor, requestMessage) {
     console.log(stateMessage.RES1);
     executor.showQuestion(requestMessage, stateMessage.RES1);
     executor.state = "1";
-    console.log("ASS1")
 }
 
 
-function step1(executor, requestMessage) {  
-    console.log("ASS2");    
+function step1(executor, requestMessage) {    
     if (isNaN(requestMessage.text) || requestMessage.text.length < 10 || requestMessage.text.length > 13) 
     {   
         console.log(validationMessage.ERR1);
@@ -147,7 +145,7 @@ function step2(executor, requestMessage) {
     var name = requestMessage.text.split(" ");
 
     var query = "SELECT firstName, lastName FROM client where mobileNumber = ?";
-    db.get(query,[mobileNumber] , function(err, row) {
+    db.get(query, [mobileNumber] , function(err, row) {
 
         if(err) {
             console.log('ERROR', err);
@@ -169,12 +167,33 @@ function step2(executor, requestMessage) {
     });
 }
 
-function step3(executor, message) {
+function step3(executor, requestMessage) {
     // Process Message - validate, store, execute
     // Jump to target state - by changing state value of executor
     // Show Target state Question
-    executor.state = "4";
-    executor.showQuestion(message);
+    //var name = requestMessage.text.split(" ");
+
+    var query = "SELECT dateOfBirth FROM client where mobileNumber = ?";
+    db.get(query, [mobileNumber] , function(err, row) {
+
+        if(err) {
+            console.log('ERROR', err);
+        } else if (!row) {
+            console.log('ERROR', err);
+        } else {
+            
+            if(requestMessage.text == row.dateOfBirth) {
+                console.log("User date of birth verified");
+                executor.showQuestion(requestMessage, stateMessage.RES4);
+                executor.state = "4";
+            }
+            else {
+                console.log("FAIL!");
+                executor.showValidationError(requestMessage, validationMessage.ERR2); 
+            }
+        }
+    });
+
 }
 
 function step4(executor, message) {
