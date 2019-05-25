@@ -1,15 +1,19 @@
 
 process.env.NTBA_FIX_319 = 1;
 var sqlite3 = require('sqlite3').verbose();
-var token = 'XXXXXXXXX';
+var token = '869456871:AAEA1_bVo3hzHmIWB51E9WeV2j8WHI4pjDM';
 
 var db = new sqlite3.Database(':memory:');
 db.serialize(function() {
-  db.run("CREATE TABLE client (firstName TEXT, lastName TEXT, mobileNumber TEXT, dateOfBirth DATE)");
-  db.run("INSERT INTO client VALUES ('Sunit', 'Singh', '1234567890', '1991-01-22')");
-  db.run("INSERT INTO client VALUES ('Mayur', 'Patil', '1234567891', '1991-01-01')");
-  db.run("INSERT INTO client VALUES ('Karishma', 'Singh', '1234567892', '1991-01-01')");
-  db.run("INSERT INTO client VALUES ('Test', 'Client', '0000000000', '1991-01-01')");
+  db.run("CREATE TABLE client (USERID TEXT, firstName TEXT, lastName TEXT, mobileNumber TEXT, dateOfBirth DATE)");
+  db.run("INSERT INTO client VALUES ('001', 'Sunit', 'Singh', '1234567890', '1991-01-22')");
+  db.run("INSERT INTO client VALUES ('002', 'Mayur', 'Patil', '1234567891', '1991-01-01')");
+  db.run("INSERT INTO client VALUES ('003', 'Karishma', 'Singh', '1234567892', '1991-01-01')");
+  db.run("INSERT INTO client VALUES ('004', 'Test', 'Client', '0000000000', '1991-01-01')");
+
+  db.run("CREATE TABLE user_mobile (USERID TEXT, mobilePhone)");
+  db.run("INSERT INTO user_mobile VALUES ('001', 'Samsung Note 8')");
+  db.run("INSERT INTO user_mobile VALUES ('001', 'Apple iPhone X')");
 
 });
 
@@ -17,6 +21,7 @@ var Bot = require('node-telegram-bot-api'),
     bot = new Bot(token, { polling: true });
 
 var state = {};
+var USERID = "";
 var mobileNumber = "";
 var firstName = "";
 var lastName = "";
@@ -31,7 +36,7 @@ var stateMessage = {
     "RES1": "Welcome to online insurance claim. Please enter your Mobile No.", 
     "RES2": "Please enter you First Name + Last Name.",
     "RES3": "Help us verify your account. Please enter your Date of Birth(YYYY-MM-DD).",
-    "RES4": "Please confirm that Apple iPhone 6S 32GB Black is the device for which you are submitting the request.",
+    "RES4": "Please select phone you want assistance with.",
     "RES5": "Please confirm the problem with your phone.",
     "RES6": "Please upload your invoice***",
     "RES7": "We have noted your request. According to our records you are entitled for full replacement. Do you want to continue with this?"
@@ -41,8 +46,6 @@ var validationMessage = {
     "ERR1": "Please enter valid Mobile No.", 
     "ERR2": "Name does not match mobile number, please enter correct name.",
     "ERR3": "Date of birth does not match account, please enter correct date of birth",
-    "ERR4": "Please confirm that Apple iPhone 6S 32GB Black is the device for which you are submitting the request.",
-    "ERR5": "Is your mobile or tablet in possession?"
 };
 
 function Executor(){
@@ -80,16 +83,6 @@ function Executor(){
 function sendMsg(requestMessage, responseMessage){  
     
     var chatid = requestMessage.chat.id;
-    
-    // var opts = {
-    //   reply_to_message_id: requestMessage.message_id,
-    //   reply_markup: JSON.stringify({
-    //     keyboard: [
-    //       ['Yes'],['No']
-    //     ],
-    //     one_time_keyboard: true
-    //   })
-    // };
 
     // var peril = {
     //     reply_to_message_id: requestMessage.message_id,
@@ -107,6 +100,12 @@ function sendMsg(requestMessage, responseMessage){
     //     bot.sendMessage(chatid, responseMessage, peril).then(function(sended){})
     // else
         bot.sendMessage(chatid, responseMessage).then(function(sended){})	    
+}
+
+function sendOptions(requestMessage, responseMessage, options) {
+    var chatid = requestMessage.chat.id;
+    console.log("Here");
+    bot.sendMessage(chatid, responseMessage, options).then(function(sended){});
 }
 
 function step0(executor, requestMessage) {
@@ -144,7 +143,7 @@ function step2(executor, requestMessage) {
     console.log(requestMessage);
     var name = requestMessage.text.split(" ");
 
-    var query = "SELECT firstName, lastName FROM client where mobileNumber = ?";
+    var query = "SELECT USERID, firstName, lastName FROM client where mobileNumber = ?";
     db.get(query, [mobileNumber] , function(err, row) {
 
         if(err) {
@@ -155,9 +154,10 @@ function step2(executor, requestMessage) {
             
             if(name[0] == row.firstName && name[1] == row.lastName) {
                 console.log("User name verified");
+                USERID = row.USERID;
                 firstName = name[0];
                 lastName = name[1];
-                executor.showQuestion(requestMessage, stateMessage.RES3);
+                executor.showQuestion(requestMessage, "Hi " + firstName + ", "+stateMessage.RES3);
                 executor.state = "3";
             }
             else {
@@ -184,24 +184,53 @@ function step3(executor, requestMessage) {
             
             if(requestMessage.text == row.dateOfBirth) {
                 console.log("User date of birth verified");
-                executor.showQuestion(requestMessage, stateMessage.RES4);
+                //executor.showQuestion(requestMessage, stateMessage.RES4);
                 executor.state = "4";
+                step4(executor, requestMessage);
+
             }
             else {
                 console.log("FAIL!");
-                executor.showValidationError(requestMessage, validationMessage.ERR2); 
+                executor.showValidationError(requestMessage, validationMessage.ERR3); 
             }
         }
     });
 
 }
 
-function step4(executor, message) {
+function step4(executor, requestMessage) {
     // Process Message - validate, store, execute
     // Jump to target state - by changing state value of executor
     // Show Target state Question
-    executor.state = "5";
-    executor.showQuestion(message);
+
+    var query = "SELECT mobilePhone FROM user_mobile where USERID = ?";
+    db.all(query, [USERID], function(err, rows) {
+
+        if(err) {
+            console.log('ERROR', err);
+        } else if (!rows) {
+            console.log('ERROR', err);
+        } else {
+            console.log(rows);
+            var mobileArray = []; 
+            rows.forEach((row) => {
+                mobileArray.push(row.mobilePhone);
+                console.log(row.mobilePhone);
+            });
+            var opts = {
+                reply_to_message_id: requestMessage.message_id,
+                reply_markup: JSON.stringify({
+                    keyboard:  mobileArray.map((x, xi) => ([{
+                               text: x,
+                               callback_data: String(xi + 1),
+                    }])),
+                    one_time_keyboard: true
+                })
+            };
+        }
+
+        sendOptions(requestMessage, stateMessage.RES4, opts);
+    });
 }
 
 function step5(executor, message) {
