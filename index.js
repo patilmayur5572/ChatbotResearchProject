@@ -1,7 +1,7 @@
 
 process.env.NTBA_FIX_319 = 1;
 var sqlite3 = require('sqlite3').verbose();
-var token = 'XXXXXX';
+var token = '869456871:AAEA1_bVo3hzHmIWB51E9WeV2j8WHI4pjDM';
 
 var db = new sqlite3.Database(':memory:');
 db.serialize(function() {
@@ -27,25 +27,26 @@ bot.on('message', function(message)
     executor.process(message);
 });
 
+var stateMessage = {
+    "RES1": "Welcome to online insurance claim. Please enter your Mobile No.", 
+    "RES2": "Please enter you First Name + Last Name.",
+    "RES3": "Help us verify your account. Please enter your Date of Birth(DD/MM/YYYY) OR Driving License Number",
+    "RES4": "Please confirm that Apple iPhone 6S 32GB Black is the device for which you are submitting the request.",
+    "RES5": "Please confirm the problem with your phone.",
+    "RES6": "Please upload your invoice***",
+    "RES7": "We have noted your request. According to our records you are entitled for full replacement. Do you want to continue with this?"
+};
+
+var validationMessage = {
+    "ERR1": "Please enter valid Mobile No.", 
+    "ERR2": "Name does not match mobile number, please enter correct name.",
+    "ERR3": "Help us verify your account. Please enter your Date of Birth OR Driving License Number",
+    "ERR4": "Please confirm that Apple iPhone 6S 32GB Black is the device for which you are submitting the request.",
+    "ERR5": "Is your mobile or tablet in possession?"
+};
+
 function Executor(){
-    var stateMessage = {
-        "1": "Welcome to online insurance claim. Please enter your Mobile No.", 
-        "2": "Please enter you First Name + Last Name.",
-        "3": "Help us verify your account. Please enter your Date of Birth(DD/MM/YYYY) OR Driving License Number",
-        "4": "Please confirm that Apple iPhone 6S 32GB Black is the device for which you are submitting the request.",
-        "5": "Please confirm the problem with your phone.",
-        "6": "Please upload your invoice***",
-        "7": "We have noted your request. According to our records you are entitled for full replacement. Do you want to continue with this?"
-    };
-    
-    var validationMessage = {
-        "1": "Please enter valid Mobile No.", 
-        "2": "Name does not match mobile number, please enter correct name.",
-        "3": "Help us verify your account. Please enter your Date of Birth OR Driving License Number",
-        "4": "Please confirm that Apple iPhone 6S 32GB Black is the device for which you are submitting the request.",
-        "5": "Is your mobile or tablet in possession?"
-    };
-    
+     
     var self = this;
     
     self.state = 0;
@@ -67,81 +68,85 @@ function Executor(){
         }
     }
     
-    self.showQuestion = function(message){        
-        sendMsg(message , stateMessage[self.state]);
+    self.showQuestion = function(requestMessage, responseMessage){        
+        sendMsg(requestMessage , responseMessage);
     }
     
-    self.showValidationError = function(message){        
-        sendMsg(message, validationMessage[self.state]);
+    self.showValidationError = function(requestMessage, responseMessage){        
+        sendMsg(requestMessage, responseMessage);
     }
 }
 
-function sendMsg(message,question){  
+function sendMsg(requestMessage, responseMessage){  
     
-    var chatid = message.chat.id;
+    var chatid = requestMessage.chat.id;
     
-    var opts = {
-      reply_to_message_id: message.message_id,
-      reply_markup: JSON.stringify({
-        keyboard: [
-          ['Yes'],['No']
-        ],
-        one_time_keyboard: true
-      })
-    };
+    // var opts = {
+    //   reply_to_message_id: requestMessage.message_id,
+    //   reply_markup: JSON.stringify({
+    //     keyboard: [
+    //       ['Yes'],['No']
+    //     ],
+    //     one_time_keyboard: true
+    //   })
+    // };
 
-    var peril = {
-        reply_to_message_id: message.message_id,
-        reply_markup: JSON.stringify({
-          keyboard: [
-            ['Malfunction'],['Lost'],['Stolen']
-          ],
-          one_time_keyboard: true
-        })
-      };
+    // var peril = {
+    //     reply_to_message_id: requestMessage.message_id,
+    //     reply_markup: JSON.stringify({
+    //       keyboard: [
+    //         ['Malfunction'],['Lost'],['Stolen']
+    //       ],
+    //       one_time_keyboard: true
+    //     })
+    //   };
     
-    if(state[chatid].state === "4" || state[chatid].state === "7")      
-        bot.sendMessage(chatid,question,opts).then(function(sended){})
-    else if(state[chatid].state === "5")
-        bot.sendMessage(chatid,question,peril).then(function(sended){})
-    else
-        bot.sendMessage(chatid,question).then(function(sended){})	    
+    // if(state[chatid].state === "4" || state[chatid].state === "7")      
+    //     bot.sendMessage(chatid, responseMessage, opts).then(function(sended){})
+    // else if(state[chatid].state === "5")
+    //     bot.sendMessage(chatid, responseMessage, peril).then(function(sended){})
+    // else
+        bot.sendMessage(chatid, responseMessage).then(function(sended){})	    
 }
 
-function step0(executor, message) {
+function step0(executor, requestMessage) {
     // Process Message - validate, store, execute
     // Jump to target state - by changing state value of executor
     // Show Target state Question
+    
+    console.log(requestMessage);
+    console.log(stateMessage.RES1);
+    executor.showQuestion(requestMessage, stateMessage.RES1);
     executor.state = "1";
-    executor.showQuestion(message);
-    console.log(message);
+    console.log("ASS1")
 }
 
-function step1(executor, message) {  
-    console.log(message.text.length < 10 && message.text.length > 13);    
-    if (isNaN(message.text) && !(message.text.length < 10 && message.text.length > 13)) 
-    {
-        executor.showValidationError(message);    
+
+function step1(executor, requestMessage) {  
+    console.log("ASS2");    
+    if (isNaN(requestMessage.text) || requestMessage.text.length < 10 || requestMessage.text.length > 13) 
+    {   
+        console.log(validationMessage.ERR1);
+        executor.showValidationError(requestMessage, validationMessage.ERR1);   
     }
     else
     {
+        
+        mobileNumber = requestMessage.text;
+        executor.showQuestion(requestMessage, stateMessage.RES2);
         executor.state = "2";
-        mobileNumber = message.text;
-        executor.showQuestion(message);
     }
 }
 
-function step2(executor, message) {
+function step2(executor, requestMessage) {
     // Process Message - validate, store, execute
     // Jump to target state - by changing state value of executor
     // Show Target state Question
-    executor.state = "3";
-    console.log(message);
-    var name = message.text.split(" ");
-    executor.showQuestion(message);
+    
+    console.log(requestMessage);
+    var name = requestMessage.text.split(" ");
 
     var query = "SELECT firstName, lastName FROM client where mobileNumber = ?";
-    
     db.get(query,[mobileNumber] , function(err, row) {
 
         if(err) {
@@ -152,10 +157,13 @@ function step2(executor, message) {
             
             if(name[0] == row.firstName && name[1] == row.lastName) {
                 console.log("User name verified");
-                executor.showQuestion(message);
+                firstName = name[0];
+                lastName = name[1];
+                executor.showQuestion(requestMessage, stateMessage.RES3);
+                executor.state = "3";
             }
             else {
-                executor.showValidationError(message); 
+                executor.showValidationError(requestMessage, validationMessage.ERR2); 
             }
         }
     });
