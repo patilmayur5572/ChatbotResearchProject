@@ -1,7 +1,7 @@
 
 process.env.NTBA_FIX_319 = 1;
 var sqlite3 = require('sqlite3').verbose();
-var token = '869456871:AAEA1_bVo3hzHmIWB51E9WeV2j8WHI4pjDM';
+var token = 'XXXXXXXXXX';
 
 var db = new sqlite3.Database(':memory:');
 db.serialize(function() {
@@ -83,23 +83,7 @@ function Executor(){
 function sendMsg(requestMessage, responseMessage){  
     
     var chatid = requestMessage.chat.id;
-
-    // var peril = {
-    //     reply_to_message_id: requestMessage.message_id,
-    //     reply_markup: JSON.stringify({
-    //       keyboard: [
-    //         ['Malfunction'],['Lost'],['Stolen']
-    //       ],
-    //       one_time_keyboard: true
-    //     })
-    //   };
-    
-    // if(state[chatid].state === "4" || state[chatid].state === "7")      
-    //     bot.sendMessage(chatid, responseMessage, opts).then(function(sended){})
-    // else if(state[chatid].state === "5")
-    //     bot.sendMessage(chatid, responseMessage, peril).then(function(sended){})
-    // else
-        bot.sendMessage(chatid, responseMessage).then(function(sended){})	    
+    bot.sendMessage(chatid, responseMessage).then(function(sended){})	    
 }
 
 function sendOptions(requestMessage, responseMessage, options) {
@@ -184,7 +168,6 @@ function step3(executor, requestMessage) {
             
             if(requestMessage.text == row.dateOfBirth) {
                 console.log("User date of birth verified");
-                //executor.showQuestion(requestMessage, stateMessage.RES4);
                 executor.state = "4";
                 step4(executor, requestMessage);
 
@@ -217,7 +200,7 @@ function step4(executor, requestMessage) {
                 mobileArray.push(row.mobilePhone);
                 console.log(row.mobilePhone);
             });
-            var opts = {
+            var options = {
                 reply_to_message_id: requestMessage.message_id,
                 reply_markup: JSON.stringify({
                     keyboard:  mobileArray.map((x, xi) => ([{
@@ -229,16 +212,29 @@ function step4(executor, requestMessage) {
             };
         }
 
-        sendOptions(requestMessage, stateMessage.RES4, opts);
+        sendOptions(requestMessage, stateMessage.RES4, options);
+        executor.state = "5";
     });
 }
 
-function step5(executor, message) {
+function step5(executor, requestMessage) {
     // Process Message - validate, store, execute
     // Jump to target state - by changing state value of executor
     // Show Target state Question
+
+    var options = {
+        reply_to_message_id: requestMessage.message_id,
+        reply_markup: JSON.stringify({
+          keyboard: [
+            ['Damaged'],['Stolen'],['Other']
+          ],
+          one_time_keyboard: true
+        })
+    };
+    sendOptions(requestMessage, stateMessage.RES5, options);
     executor.state = "6";
-    executor.showQuestion(message);
+
+    
 }
 function step6(executor, message) {
     // Process Message - validate, store, execute
