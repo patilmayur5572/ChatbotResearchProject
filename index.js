@@ -1,7 +1,7 @@
 
 process.env.NTBA_FIX_319 = 1;
 var sqlite3 = require('sqlite3').verbose();
-var token = 'XXXXXXXXXX';
+var token = '869456871:AAEA1_bVo3hzHmIWB51E9WeV2j8WHI4pjDM';
 
 var db = new sqlite3.Database(':memory:');
 db.serialize(function() {
@@ -14,6 +14,11 @@ db.serialize(function() {
   db.run("CREATE TABLE user_mobile (USERID TEXT, mobilePhone)");
   db.run("INSERT INTO user_mobile VALUES ('001', 'Samsung Note 8')");
   db.run("INSERT INTO user_mobile VALUES ('001', 'Apple iPhone X')");
+
+  db.run("CREATE TABLE issue_list(ISSUEID TEXT, issue TEXT)");
+  db.run("INSERT INTO issue_list VALUES('001', 'connection')");
+  db.run("INSERT INTO issue_list VALUES('002', 'screen')");
+
 
 });
 
@@ -38,8 +43,9 @@ var stateMessage = {
     "RES3": "Help us verify your account. Please enter your Date of Birth(YYYY-MM-DD).",
     "RES4": "Please select phone you want assistance with.",
     "RES5": "Please confirm the problem with your phone.",
-    "RES6": "Please upload your invoice***",
-    "RES7": "We have noted your request. According to our records you are entitled for full replacement. Do you want to continue with this?"
+    "RES6": "Please type in your problem.",
+    "RES7": "Sorry your information did not match any keywords, we have forwarded your query to our customer service rep with CASE ID XXXXX, They would contact you within 48 hours.",
+    "RES8": "If you wish for immediate resolution, please call XXX-XXXXXX-XXX with Case ID XXXXX."
 };
 
 var validationMessage = {
@@ -62,6 +68,8 @@ function Executor(){
     self.stateExecutor["4"] = step4;
     self.stateExecutor["5"] = step5;
     self.stateExecutor["6"] = step6;
+    self.stateExecutor["7"] = step7;
+    self.stateExecutor["8"] = step8;
     
     self.process = function(message){
         // if its first invocation - then do not execute step. Show the question
@@ -233,15 +241,50 @@ function step5(executor, requestMessage) {
     };
     sendOptions(requestMessage, stateMessage.RES5, options);
     executor.state = "6";
-
-    
 }
-function step6(executor, message) {
+
+function step6(executor, requestMessage) {
     // Process Message - validate, store, execute
     // Jump to target state - by changing state value of executor
     // Show Target state Question
     executor.state = "7";
-    executor.showQuestion(message);
+    console.log(requestMessage);
+    if(requestMessage.text == 'Other') {
+        executor.showQuestion(requestMessage, stateMessage.RES6);
+        executor.state = "7";
+    }
+}
+
+function step7(executor, requestMessage) {
+    var userText = requestMessage.text.split(" ");
+    console.log(userText);
+    var flag = 0; 
+    userText.forEach(text => {
+        
+        var query = "SELECT issue FROM issue_list where issue = ?";
+        db.get(query, [text] , function(err, row) {
+    
+            if(err) {
+                console.log('ERROR', err);
+            } else if (!row) {
+                console.log('No match found for the keys');
+            } else {
+                flag = 1; 
+                console.log('found a match');
+            }
+        });
+    
+    });
+
+    if(flag == 0) {
+        executor.showQuestion(requestMessage, stateMessage.RES7);
+        executor.showQuestion(requestMessage, stateMessage.RES8);
+        executor.state = "8";
+    }
+}
+
+function step8(executor, requestMessage) {
+    console.log("here f");
 }
 
 console.log("Chatbot server started");
