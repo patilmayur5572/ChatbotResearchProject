@@ -1,7 +1,8 @@
 
+
 process.env.NTBA_FIX_319 = 1;
 var sqlite3 = require('sqlite3').verbose();
-var token = '746894296:AAEdpKlYdZwY_ho_V-_ls_PJMRq9xYEs18Q';
+var token = 'XXXXXXXXXXXXXXXXXXXXXX';
 var mailer = require('nodemailer');
 var PDFDoc = require('pdfkit');
 var fs = require('fs');
@@ -18,14 +19,19 @@ db.serialize(function() {
 
   db.run("CREATE TABLE user_mobile (USERID TEXT, mobilePhone)");
   db.run("INSERT INTO user_mobile VALUES ('001', 'Samsung Note 8')");
-  db.run("INSERT INTO user_mobile VALUES ('001', 'Apple iPhone X')");
-
+  db.run("INSERT INTO user_mobile VALUES ('001', 'Apple iPhone 7')");
   db.run("INSERT INTO user_mobile VALUES ('002', 'Samsung Note 8')");
   db.run("INSERT INTO user_mobile VALUES ('002', 'Apple iPhone X')");
 
   db.run("CREATE TABLE issue_list(ISSUEID TEXT, issue TEXT)");
-  db.run("INSERT INTO issue_list VALUES('001', 'connection')");
-  db.run("INSERT INTO issue_list VALUES('002', 'screen')");
+  db.run("INSERT INTO issue_list VALUES('001', 'CONNECTION')");
+  db.run("INSERT INTO issue_list VALUES('002', 'SCREEN')");
+
+  db.run("CREATE TABLE issue_sublist (issue TEXT, options)");
+  db.run("INSERT INTO issue_sublist VALUES('001', 'wireless problem')");
+  db.run("INSERT INTO issue_sublist VALUES('001', 'bluetooth problem')");
+  db.run("INSERT INTO issue_sublist VALUES('002', 'broken')");
+  db.run("INSERT INTO issue_sublist VALUES('002', 'display error')");
 
 
 });
@@ -59,7 +65,10 @@ var stateMessage = {
     "RES5": "Please confirm the problem with your phone.",
     "RES6": "Please type in your problem.",
     "RES7": "Sorry your information did not match any keywords, we have forwarded your query to our customer service rep with CASE ID XXXXX, They would contact you within 48 hours.",
-    "RES8": "If you wish for immediate resolution, please call XXX-XXXXXX-XXX with Case ID XXXXX."
+    "RES8": "If you wish for immediate resolution, please call XXX-XXXXXX-XXX with Case ID XXXXX.",
+    "RES9": "Please select the type of your problem",
+    "RES10": "Please write your problem in as much detail.",
+    "RES11": "We have recieved your request, you would get an email with details of the claim."
 };
 
 var validationMessage = {
@@ -84,6 +93,10 @@ function Executor(){
     self.stateExecutor["6"] = step6;
     self.stateExecutor["7"] = step7;
     self.stateExecutor["8"] = step8;
+    self.stateExecutor["9"] = step9;
+    self.stateExecutor["10"] = step10;
+    self.stateExecutor["11"] = step11;
+    self.stateExecutor["12"] = step12;
     
     self.process = function(message){
         // if its first invocation - then do not execute step. Show the question
@@ -115,9 +128,6 @@ function sendOptions(requestMessage, responseMessage, options) {
 }
 
 function step0(executor, requestMessage) {
-    // Process Message - validate, store, execute
-    // Jump to target state - by changing state value of executor
-    // Show Target state Question
     
     console.log(requestMessage);
     console.log(stateMessage.RES1);
@@ -142,9 +152,6 @@ function step1(executor, requestMessage) {
 }
 
 function step2(executor, requestMessage) {
-    // Process Message - validate, store, execute
-    // Jump to target state - by changing state value of executor
-    // Show Target state Question
     
     console.log(requestMessage);
     var name = requestMessage.text.split(" ");
@@ -158,10 +165,10 @@ function step2(executor, requestMessage) {
             console.log('ERROR', err);
         } else {
             
-            if(name[0] == row.firstName && name[1] == row.lastName) {
+            if(name[0].toUpperCase() === row.firstName.toUpperCase() && name[1].toUpperCase() == row.lastName.toUpperCase()) {
                 console.log("User name verified");
                 USERID = row.USERID;
-                firstName = name[0];
+                firstName = name[0];	
                 lastName = name[1];
                 emailID = row.emailID;
                 executor.showQuestion(requestMessage, "Hi " + firstName + ", "+stateMessage.RES3);
@@ -175,10 +182,6 @@ function step2(executor, requestMessage) {
 }
 
 function step3(executor, requestMessage) {
-    // Process Message - validate, store, execute
-    // Jump to target state - by changing state value of executor
-    // Show Target state Question
-    //var name = requestMessage.text.split(" ");
 
     var query = "SELECT dateOfBirth FROM client where mobileNumber = ?";
     db.get(query, [mobileNumber] , function(err, row) {
@@ -205,9 +208,6 @@ function step3(executor, requestMessage) {
 }
 
 function step4(executor, requestMessage) {
-    // Process Message - validate, store, execute
-    // Jump to target state - by changing state value of executor
-    // Show Target state Question
 
     var query = "SELECT mobilePhone FROM user_mobile where USERID = ?";
     db.all(query, [USERID], function(err, rows) {
@@ -241,9 +241,7 @@ function step4(executor, requestMessage) {
 }
 
 function step5(executor, requestMessage) {
-    // Process Message - validate, store, execute
-    // Jump to target state - by changing state value of executor
-    // Show Target state Question
+
     device = requestMessage.text;
     var options = {
         reply_to_message_id: requestMessage.message_id,
@@ -255,20 +253,22 @@ function step5(executor, requestMessage) {
         })
     };
     sendOptions(requestMessage, stateMessage.RES5, options);
-    
     executor.state = "6";
 }
 
 function step6(executor, requestMessage) {
-    // Process Message - validate, store, execute
-    // Jump to target state - by changing state value of executor
-    // Show Target state Question
-    peril = requestMessage.text;
     console.log(requestMessage);
-    executor.state = "8";    
+    executor.state = "8";
     if(requestMessage.text == 'Other') {
         executor.showQuestion(requestMessage, stateMessage.RES6);
         executor.state = "7";
+    }
+    else {
+        console.log(requestMessage.text);
+        peril = requestMessage.text;
+        sendEmailConfirmation();
+        executor.state = 12; 
+        step12(executor, requestMessage);
     }
 }
 
@@ -276,32 +276,111 @@ function step7(executor, requestMessage) {
     var userText = requestMessage.text.split(" ");
     console.log(userText);
     var flag = 0; 
-    userText.forEach(text => {
+   userText.forEach(text => {
         
-        var query = "SELECT issue FROM issue_list where issue = ?";
-        db.get(query, [text] , function(err, row) {
+        var query = "SELECT ISSUEID, issue FROM issue_list where issue = ?";
+        db.get(query, [text.toUpperCase()] , function(err, row) {
     
             if(err) {
                 console.log('ERROR', err);
             } else if (!row) {
-                console.log('No match found for the keys');
+                console.log('No match found for the key');
             } else {
                 flag = 1; 
-                console.log('found a match');
+                console.log('found a match')
+                executor.state = "9";
+                console.log(row.ISSUEID);
+                step9(executor, requestMessage, row.ISSUEID);
+
             }
         });
     
     });
 
-    if(flag == 0) {
-        executor.showQuestion(requestMessage, stateMessage.RES7);
-        executor.showQuestion(requestMessage, stateMessage.RES8);
-        executor.state = "8";
+    setTimeout(function() {
+        if(flag ==0) {
+            console.log(flag);
+                executor.showQuestion(requestMessage, stateMessage.RES7);
+                executor.showQuestion(requestMessage, stateMessage.RES8);
+                executor.state = "8";
+                step8(executor, requestMessage);
+        }
+    }, 2000);
+}
+
+
+function step8(executor, requestMessage) {
+    console.log(requestMessage.text);
+    peril = requestMessage.text;
+    sendEmailConfirmation();
+    executor.state = "12";
+    step12(executor, requestMessage);
+}
+
+function step9(executor, requestMessage, ISSUEID) {
+    console.log("the issueid is" + ISSUEID);
+    var query = "SELECT options FROM issue_sublist where issue = ?";
+    db.all(query, [ISSUEID], function(err, rows) {
+
+        if(err) {
+            console.log('ERROR', err);
+        } else if (!rows) {
+            console.log('ERROR', err);
+        } else {
+            console.log("fetched rows " + rows);
+            var issueArray = []; 
+            rows.forEach((row) => {
+                issueArray.push(row.options);
+            });
+            issueArray.push("Other");
+            var options = {
+                reply_to_message_id: requestMessage.message_id,
+                reply_markup: JSON.stringify({
+                    keyboard:  issueArray.map((x, xi) => ([{
+                               text: x,
+                               callback_data: String(xi + 1),
+                    }])),
+                    one_time_keyboard: true
+                })
+            };
+        }
+
+        sendOptions(requestMessage, stateMessage.RES9, options);
+        executor.state = "10";
+    });
+}
+
+
+function step10(executor, requestMessage) {
+    console.log("step 10 here");
+    if(requestMessage.text == 'Other') {
+        executor.showQuestion(requestMessage, stateMessage.RES10);
+        executor.state = "11";
+    }
+    else {
+        console.log(requestMessage.text);
+        peril = requestMessage.text;
+        sendEmailConfirmation();
+        executor.state = 12; 
+        step12(executor, requestMessage);
+
     }
 }
 
-function step8(executor, requestMessage) {
-    //PLEASE MOVE THIS CODE IN FURTHER STEPS AS YOU PROCEED
+function step11(executor, requestMessage) {
+    console.log("step 11 here");
+    peril = requestMessage.text;
+    sendEmailConfirmation();
+    executor.state = 12; 
+    step12(executor,requestMessage);
+}
+
+function step12(executor, requestMessage) {
+    executor.showQuestion(requestMessage, stateMessage.RES11);
+}
+
+
+function sendEmailConfirmation() {         
     createReceipt();
     let transporter = mailer.createTransport({
         host: 'smtp.gmail.com',
@@ -310,16 +389,16 @@ function step8(executor, requestMessage) {
         auth: {
             type: 'OAuth2',
             user: 'sydneyhappening@gmail.com',
-            clientId: '919649279451-5vgs6h2p5asdjmq4lkvf9pamckvk080f.apps.googleusercontent.com',
-            clientSecret: '2YpPcywTOaRnyp78Hvgw8kXM',
+            clientId: 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+            clientSecret: 'XXXXXXXXXXXXXXXXXXXXXXX',
             refreshToken: '1/MTLy7UzCSE2Ovn2XT6Wp7oabA8g_69wlG1KliV3xne0',
             accessToken: 'ya29.GlsZB7iw8dijnZuz6aYD9oc9CtWqgKZhw5YhivREEyHbbuKcUcAWAeoJxzqIs4qV60KHLoxjCjNlN_TxRY7nXeibykbu_glBEMpzFj0odw-0tjosI67NpwuN99CA',
             expires: 3600 
         }       
-        
+
     });
 
-       
+
     var mailOptions = {
         from: '"UTS BOT" <noreply@gmail.com>',
         to: emailID,
@@ -332,9 +411,8 @@ function step8(executor, requestMessage) {
             Console.log("Claim receipt has been emailed to your registered email address");
         }
     });
-  
-}
 
+}
 
 function createReceipt(){
     const doc = new PDFDoc;
@@ -356,5 +434,8 @@ function createReceipt(){
     doc.end();
 }
 
+
+
 console.log("Chatbot server started");
+
 
