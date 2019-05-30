@@ -1,7 +1,10 @@
 
 process.env.NTBA_FIX_319 = 1;
 var sqlite3 = require('sqlite3').verbose();
-var token = '869456871:AAEA1_bVo3hzHmIWB51E9WeV2j8WHI4pjDM';
+var token = '746894296:AAEdpKlYdZwY_ho_V-_ls_PJMRq9xYEs18Q';
+
+var PDFDoc = require('pdfkit');
+var fs = require('fs');
 
 process.env["NTBA_FIX_350"] = 1;
 
@@ -37,6 +40,7 @@ var firstName = "";
 var lastName = "";
 var device = "";
 var emailID = "";
+var peril =  "";
 
 
 bot.on('message', function(message)
@@ -159,6 +163,7 @@ function step2(executor, requestMessage) {
                 USERID = row.USERID;
                 firstName = name[0];
                 lastName = name[1];
+                emailID = name[4];
                 executor.showQuestion(requestMessage, "Hi " + firstName + ", "+stateMessage.RES3);
                 executor.state = "3";
             }
@@ -239,7 +244,7 @@ function step5(executor, requestMessage) {
     // Process Message - validate, store, execute
     // Jump to target state - by changing state value of executor
     // Show Target state Question
-
+    device = requestMessage.text;
     var options = {
         reply_to_message_id: requestMessage.message_id,
         reply_markup: JSON.stringify({
@@ -250,6 +255,7 @@ function step5(executor, requestMessage) {
         })
     };
     sendOptions(requestMessage, stateMessage.RES5, options);
+    
     executor.state = "6";
 }
 
@@ -257,8 +263,10 @@ function step6(executor, requestMessage) {
     // Process Message - validate, store, execute
     // Jump to target state - by changing state value of executor
     // Show Target state Question
+    peril = requestMessage.text;
     console.log(requestMessage);
     executor.state = "8";
+    createReceipt();
     //step8(executor, requestMessage);
     if(requestMessage.text == 'Other') {
         executor.showQuestion(requestMessage, stateMessage.RES6);
@@ -298,5 +306,27 @@ function step8(executor, requestMessage) {
     console.log("step 08");           
 }
 
-console.log("Chatbot server started");0
+
+function createReceipt(){
+    console.log('inside function')
+    const doc = new PDFDoc;
+
+    doc.pipe(fs.createWriteStream('Document/ClaimDocument.pdf', 'base64'));
+
+    doc.addContent().fontSize(25).text("Claim Receipt",100,140,{align: 'center'});
+
+    doc.addContent().fontSize(20).text("Name: " + firstName +" " + lastName,100,180);
+
+    doc.addContent().fontSize(20).text("ClaimID: 123456" ,100,220);
+
+    doc.addContent().fontSize(20).text("Device: " + device,100,260);
+
+    doc.addContent().fontSize(20).text("Problem with phone: " + peril,100,300);
+
+    doc.addContent().fontSize(8).text("Note: Please keep this receipt handy to further track your claim " ,100,380);
+
+    doc.end();
+}
+
+console.log("Chatbot server started");
 
