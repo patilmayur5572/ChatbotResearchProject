@@ -3,17 +3,22 @@ process.env.NTBA_FIX_319 = 1;
 var sqlite3 = require('sqlite3').verbose();
 var token = '869456871:AAEA1_bVo3hzHmIWB51E9WeV2j8WHI4pjDM';
 
+process.env["NTBA_FIX_350"] = 1;
+
 var db = new sqlite3.Database(':memory:');
 db.serialize(function() {
-  db.run("CREATE TABLE client (USERID TEXT, firstName TEXT, lastName TEXT, mobileNumber TEXT, dateOfBirth DATE)");
-  db.run("INSERT INTO client VALUES ('001', 'Sunit', 'Singh', '1234567890', '1991-01-22')");
-  db.run("INSERT INTO client VALUES ('002', 'Mayur', 'Patil', '1234567891', '1991-01-01')");
-  db.run("INSERT INTO client VALUES ('003', 'Karishma', 'Singh', '1234567892', '1991-01-01')");
-  db.run("INSERT INTO client VALUES ('004', 'Test', 'Client', '0000000000', '1991-01-01')");
+  db.run("CREATE TABLE client (USERID TEXT, firstName TEXT, lastName TEXT, mobileNumber TEXT, dateOfBirth DATE, EmailID)");
+  db.run("INSERT INTO client VALUES ('001', 'Sunit', 'Singh', '1234567890', '1991-01-22','sunitsingh2291@gmail.com')");
+  db.run("INSERT INTO client VALUES ('002', 'Mayur', 'Patil', '1234567891', '1990-04-05', 'patilmayur5572@gmail.com')");
+  db.run("INSERT INTO client VALUES ('003', 'Karishma', 'Singh', '1234567892', '1991-01-01','Karishmaas26@gmail.com')");
+ ;
 
   db.run("CREATE TABLE user_mobile (USERID TEXT, mobilePhone)");
   db.run("INSERT INTO user_mobile VALUES ('001', 'Samsung Note 8')");
   db.run("INSERT INTO user_mobile VALUES ('001', 'Apple iPhone X')");
+
+  db.run("INSERT INTO user_mobile VALUES ('002', 'Samsung Note 8')");
+  db.run("INSERT INTO user_mobile VALUES ('002', 'Apple iPhone X')");
 
   db.run("CREATE TABLE issue_list(ISSUEID TEXT, issue TEXT)");
   db.run("INSERT INTO issue_list VALUES('001', 'connection')");
@@ -30,12 +35,17 @@ var USERID = "";
 var mobileNumber = "";
 var firstName = "";
 var lastName = "";
+var device = "";
+var emailID = "";
+
 
 bot.on('message', function(message)
 {	
     var executor = state[message.chat.id] = state[message.chat.id] ? state[message.chat.id]: new Executor();    
     executor.process(message);
 });
+
+bot.on("polling_error", (err) => console.log(err));
 
 var stateMessage = {
     "RES1": "Welcome to online insurance claim. Please enter your Mobile No.", 
@@ -247,8 +257,9 @@ function step6(executor, requestMessage) {
     // Process Message - validate, store, execute
     // Jump to target state - by changing state value of executor
     // Show Target state Question
-    executor.state = "7";
     console.log(requestMessage);
+    executor.state = "8";
+    //step8(executor, requestMessage);
     if(requestMessage.text == 'Other') {
         executor.showQuestion(requestMessage, stateMessage.RES6);
         executor.state = "7";
@@ -284,8 +295,8 @@ function step7(executor, requestMessage) {
 }
 
 function step8(executor, requestMessage) {
-    console.log("here f");
+    console.log("step 08");           
 }
 
-console.log("Chatbot server started");
+console.log("Chatbot server started");0
 
