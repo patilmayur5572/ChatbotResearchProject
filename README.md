@@ -8,8 +8,6 @@ Chatbot project was developed using NodeJS and telegram API for UTS Research Pro
 ## Table of contents
 <!--ts-->
    * [Getting Started](#getting-started)
-   * [Build](#build)
-   * [Deployment](#deployment)
    * [Database](#database)
    * [Sending Email functionality](#sending-email-functionality)
    * [Screenshot](#screenshot)
