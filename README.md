@@ -24,7 +24,7 @@ You need Git for cloning the project into your system. Please follow [this guide
 Please follow these instruction to download and install 
 [Node Package Manager(npm) and Node.js](https://www.npmjs.com/get-npm). After Node Package Manager (npm) has been installed, Please set up an account for Telegram bot API. [Telegram Bot API ](https://core.telegram.org/bots) <br>
 
-### Starting the SydneyHappening project
+### Starting the ChatbotResearchProject
 After completing the installations, navigate to `/ChatbotResearchProject/` directory and give command <br>
 `npm intall`<br>
 This would install all the package dependencies for the server from `package.json file` in the `node_modules` directory. <br>  
