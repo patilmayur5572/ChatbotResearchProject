@@ -18,7 +18,7 @@ Please clone ChatbotResearchProject into your local system to work with it. <br>
 
 ### Checking out the source-code from Github:
 You need Git for cloning the project into your system. Please follow [this guide](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) for Git installation. For cloning the the project, open `Git Bash` and give the following command: <br/>
-`git clone https://github.com/Sunit22/SydneyHappening.git` <br>
+`git clone https://github.com/patilmayur5572/ChatbotResearchProject.git` <br>
 
 ### NPM and Node.js installation:
 Please follow these instruction to download and install 
